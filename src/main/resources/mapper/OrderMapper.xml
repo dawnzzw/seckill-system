@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.seckill.mapper.OrderMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.seckill.entity.Order">
+        <id column="id" property="id"/>
+        <result column="order_no" property="orderNo"/>
+        <result column="user_id" property="userId"/>
+        <result column="product_id" property="productId"/>
+        <result column="quantity" property="quantity"/>
+        <result column="total_price" property="totalPrice"/>
+        <result column="status" property="status"/>
+        <result column="pay_time" property="payTime"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <!--1.插入订单-->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO `order`(
+                            order_no,
+                            user_id,
+                            product_id,
+                            quantity,
+                            total_price,
+                            status
+        )values(
+                #{orderNo},
+                #{userId},
+                #{productId},
+                #{quantity},
+                #{totalPrice},
+                0
+        )
+    </insert>
+
+    <!--2.根据ID查询订单-->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT * FROM `order` WHERE id=#{id}
+    </select>
+
+    <!-- 3. 查询今日订单数 -->
+    <select id="countTodayOrders" resultType="int">
+        SELECT COUNT(*) FROM `order` WHERE DATE(create_time) = CURDATE()
+    </select>
+
+    <!-- 4. 修改订单状态 -->
+    <update id="update">
+        UPDATE `order`
+        SET status = #{status},
+            pay_time = #{payTime}
+        WHERE order_no = #{orderNo}
+    </update>
+
+
+    <!-- 5. 根据订单编号查询订单 -->
+    <select id="findByOrderNo" resultMap="BaseResultMap">
+        SELECT * FROM `order` WHERE order_no = #{orderNo}
+    </select>
+
+    <!-- 6. 查询超时未支付的订单（超时30分钟，且支付状态为0） -->
+    <select id="findTimeoutOrders" resultMap="BaseResultMap">
+        SELECT * FROM `order`
+        WHERE status = 0
+          AND create_time &lt; NOW() - INTERVAL 30 MINUTE
+    </select>
+
+    <!--7.根据用户ID查询订单列表（支持状态筛选）-->
+    <select id="findOrdersByUser" resultType="com.example.seckill.entity.Order">
+        SELECT * FROM `order`
+        WHERE user_id=#{userId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test='startTime != null'>
+            AND create_time >= #{startTime}
+        </if>
+        <if test='endTime != null'>
+            AND create_time &lt;= #{endTime}
+        </if>
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!--8.统计用户订单数量（支持状态筛选-->
+    <select id="countOrdersByUser" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM `order`
+        WHERE user_id = #{userId}
+        <if test="status!=null">
+            AND status=#{status}
+        </if>
+        <if test='startTime != null'>
+            AND create_time >= #{startTime}
+        </if>
+        <if test='endTime != null'>
+            AND create_time &lt;= #{endTime}
+        </if>
+    </select>
+
+    <!--9.按时间范围统计订单总数-->
+    <select id="countByTime" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM `order`
+        WHERE create_time between #{startTime} and #{endTime}
+    </select>
+
+    <!--10.按状态+时间范围统计订单总数-->
+    <select id="countByStatusAndTime" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM `order`
+        WHERE status = #{status}
+          AND create_time between #{startTime} and #{endTime}
+    </select>
+
+    <!--11.按时间范围查询所有订单-->
+    <select id="findAllByTime" resultType="com.example.seckill.entity.Order">
+        SELECT * FROM `order`
+        WHERE create_time between #{startTime} and #{endTime}
+        ORDER BY create_time DESC
+    </select>
+
+    <!--12.批量修改订单状态-->
+    <update id="batchUpdateStatus">
+        UPDATE `order`
+        SET status = #{status}
+        WHERE id IN
+        <foreach item="orderNo" collection="orderNos" separator="," open="(" close=")">
+            #{orderNo}
+        </foreach>
+    </update>
+</mapper>

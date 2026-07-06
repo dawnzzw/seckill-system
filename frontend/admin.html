@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商家后台 - 秒杀系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+        }
+
+        /* ===== 登录页面 ===== */
+        .login-container {
+            background: white;
+            padding: 48px 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
+            width: 420px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+
+        .login-container.active {
+            display: block;
+        }
+
+        .login-container h1 {
+            text-align: center;
+            font-size: 28px;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+        }
+
+        .login-container .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        /* ===== Tab 切换 ===== */
+        .tab-wrapper {
+            display: flex;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #e8e8e8;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 0;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            color: #0984e3;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #0984e3;
+            border-radius: 2px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .login-container label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .login-container input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e8e8e8;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            margin-bottom: 16px;
+        }
+
+        .login-container input:focus {
+            outline: none;
+            border-color: #0984e3;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: #0984e3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 8px;
+        }
+
+        .login-btn:hover {
+            background: #0652DD;
+        }
+
+        .login-error {
+            color: #ff6b6b;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .login-success {
+            color: #00b894;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 12px;
+            display: none;
+        }
+
+        /* ===== 主界面 ===== */
+        .main-container {
+            display: none;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .main-container.active {
+            display: block;
+        }
+
+        /* 顶部导航 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            margin-bottom: 24px;
+        }
+
+        .header .logo {
+            font-size: 22px;
+            font-weight: 700;
+            color: #0984e3;
+        }
+
+        .header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header .logout-btn {
+            padding: 8px 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .header .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        /* ===== 功能卡片 ===== */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card-full {
+            grid-column: 1 / -1;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .card h3 {
+            font-size: 16px;
+            color: #1a1a2e;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f2f5;
+        }
+
+        .card .row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .card .row label {
+            font-size: 14px;
+            color: #555;
+            min-width: 80px;
+        }
+
+        .card .row input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #e8e8e8;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 120px;
+        }
+
+        .card .row input:focus {
+            outline: none;
+            border-color: #0984e3;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #0984e3;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0652DD;
+        }
+
+        .btn-success {
+            background: #00b894;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #00a381;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d68910;
+        }
+
+        .btn-outline {
+            background: white;
+            color: #333;
+            border: 2px solid #e8e8e8;
+        }
+
+        .btn-outline:hover {
+            background: #f0f2f5;
+        }
+
+        .btn-sm {
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+
+        /* ===== 统计信息 ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .stat-item {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-item .number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+
+        .stat-item .label {
+            font-size: 13px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .stat-item .number.green {
+            color: #00b894;
+        }
+        .stat-item .number.red {
+            color: #e74c3c;
+        }
+        .stat-item .number.blue {
+            color: #0984e3;
+        }
+        .stat-item .number.orange {
+            color: #f39c12;
+        }
+
+        /* ===== 秒杀状态列表 ===== */
+        .status-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .status-item .tag {
+            padding: 2px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-item .tag.active {
+            background: #e8f8f5;
+            color: #00b894;
+        }
+
+        .status-item .tag.ended {
+            background: #fdedec;
+            color: #e74c3c;
+        }
+
+        .status-item .tag.notstart {
+            background: #f0f0f0;
+            color: #888;
+        }
+
+        /* ===== 订单列表 ===== */
+        .order-list-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .order-item-admin {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .order-item-admin:last-child {
+            border-bottom: none;
+        }
+
+        .order-item-admin .order-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .order-item-admin .order-no {
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .order-item-admin .order-meta {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .order-item-admin .order-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .order-status {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 2px 12px;
+            border-radius: 20px;
+        }
+
+        .order-status.pending {
+            color: #f39c12;
+            background: #fef9e7;
+        }
+
+        .order-status.paid {
+            color: #00b894;
+            background: #e8f8f5;
+        }
+
+        .order-status.cancelled {
+            color: #e74c3c;
+            background: #fdedec;
+        }
+
+        .order-status.timeout {
+            color: #95a5a6;
+            background: #f0f0f0;
+        }
+
+        .order-total {
+            font-weight: 600;
+            color: #ff6b6b;
+            font-size: 14px;
+        }
+
+        /* ===== Toast ===== */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 14px 28px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            font-size: 15px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            display: none;
+            animation: slideDown 0.4s ease;
+        }
+
+        .toast.success {
+            background: #00b894;
+        }
+
+        .toast.error {
+            background: #e74c3c;
+        }
+
+        .toast.warning {
+            background: #f39c12;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+            .login-container {
+                width: 90%;
+                padding: 32px 20px;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .card .row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .card .row label {
+                min-width: auto;
+            }
+            .order-item-admin {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== Toast ===== -->
+<div id="toast" class="toast"></div>
+
+<!-- ===== 登录页面 ===== -->
+<div id="loginContainer" class="login-container active">
+    <h1>🏪 商家后台</h1>
+    <p class="subtitle">管理员登录 · 管理秒杀活动</p>
+
+    <!-- Tab 切换 -->
+    <div class="tab-wrapper">
+        <button class="tab-btn active" data-tab="login" onclick="switchTab('login')">登录</button>
+        <button class="tab-btn" data-tab="register" onclick="switchTab('register')">注册</button>
+    </div>
+
+    <!-- ===== 登录 Tab ===== -->
+    <div id="loginTab" class="tab-content active">
+        <label>商家账号</label>
+        <input id="loginUsername" type="text" placeholder="请输入商家用户名">
+
+        <label>密码</label>
+        <input id="loginPassword" type="password" placeholder="请输入密码">
+
+        <button class="login-btn" onclick="handleLogin()">登 录</button>
+        <p id="loginError" class="login-error">❌ 用户名或密码错误</p>
+    </div>
+
+    <!-- ===== 注册 Tab ===== -->
+    <div id="registerTab" class="tab-content">
+        <label>商家用户名</label>
+        <input id="regUsername" type="text" placeholder="请设置用户名（4-20位字母或数字）">
+
+        <label>密码</label>
+        <input id="regPassword" type="password" placeholder="请设置密码（6位以上）">
+
+        <label>店铺名称</label>
+        <input id="regShopName" type="text" placeholder="请输入店铺名称">
+
+        <label>手机号</label>
+        <input id="regPhone" type="text" placeholder="请输入手机号（选填）">
+
+        <button class="login-btn" onclick="handleRegister()">注 册</button>
+        <p id="registerSuccess" class="login-success">✅ 注册成功，请切换到登录页面</p>
+        <p id="registerError" class="login-error"></p>
+    </div>
+</div>
+
+<!-- ===== 主界面 ===== -->
+<div id="mainContainer" class="main-container">
+
+    <!-- 顶部导航 -->
+    <div class="header">
+        <div class="logo">🏪 商家后台</div>
+        <div class="user-info">
+            <span>👋 欢迎，<strong id="currentUser">管理员</strong></span>
+            <button class="logout-btn" onclick="handleLogout()">退出登录</button>
+        </div>
+    </div>
+
+    <div class="dashboard">
+
+        <!-- ===== 卡片1：商品预热 ===== -->
+        <div class="card">
+            <h3>🔥 商品预热</h3>
+            <div class="row">
+                <label>商品ID：</label>
+                <input id="preheatId" type="text" placeholder="如：1">
+                <button class="btn btn-primary" onclick="preheatSingle()">单商品预热</button>
+            </div>
+            <div class="row">
+                <label>批量ID：</label>
+                <input id="preheatBatchIds" type="text" placeholder="如：1,2,3">
+                <button class="btn btn-success" onclick="preheatBatch()">批量预热</button>
+            </div>
+            <div style="margin-top:10px;font-size:13px;color:#888;">
+                💡 预热后商品状态变为"进行中"，用户才能下单
+            </div>
+        </div>
+
+        <!-- ===== 卡片2：秒杀控制 ===== -->
+        <div class="card">
+            <h3>🎯 秒杀控制</h3>
+            <div class="row">
+                <label>商品ID：</label>
+                <input id="endId" type="text" placeholder="如：1">
+                <button class="btn btn-warning" onclick="endSeckill()">结束秒杀</button>
+            </div>
+            <div class="row">
+                <label>批量结束：</label>
+                <input id="endBatchIds" type="text" placeholder="如：1,2,3">
+                <button class="btn btn-danger" onclick="endSeckillBatch()">批量结束</button>
+            </div>
+            <div class="row">
+                <button class="btn btn-danger" onclick="emergencyStop()" style="width:100%;">
+                    🚨 紧急熔断（关闭所有秒杀）
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== 卡片3：活动状态 ===== -->
+        <div class="card">
+            <h3>📊 秒杀活动状态</h3>
+            <div class="row">
+                <button class="btn btn-primary" onclick="loadStatus()">刷新状态</button>
+            </div>
+            <div id="statusList" class="status-list">
+                <div style="color:#888;text-align:center;padding:20px;">点击"刷新状态"查看</div>
+            </div>
+        </div>
+
+        <!-- ===== 卡片4：数据统计 ===== -->
+        <div class="card">
+            <h3>📈 数据统计</h3>
+            <div class="row">
+                <label>开始时间：</label>
+                <input id="statStart" type="date">
+                <label>结束时间：</label>
+                <input id="statEnd" type="date">
+                <button class="btn btn-primary" onclick="loadStatistics()">查询</button>
+            </div>
+            <div id="statResults" class="stats-grid">
+                <div class="stat-item">
+                    <div class="number blue" id="statTotal">-</div>
+                    <div class="label">总订单</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number green" id="statPaid">-</div>
+                    <div class="label">已支付</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number orange" id="statPending">-</div>
+                    <div class="label">待支付</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number red" id="statRate">-</div>
+                    <div class="label">支付率</div>
+                </div>
+            </div>
+            <div class="row" style="margin-top:10px;">
+                <button class="btn btn-outline" onclick="loadTodayCount()">📅 今日订单数</button>
+                <span id="todayCount" style="font-size:16px;font-weight:600;color:#0984e3;"></span>
+            </div>
+        </div>
+
+        <!-- ===== 卡片5：订单管理 ===== -->
+        <div class="card card-full">
+            <h3>📋 订单管理</h3>
+            <div class="row">
+                <button class="btn btn-primary btn-sm" onclick="loadAdminOrders('')">刷新订单</button>
+                <button class="btn btn-outline btn-sm" onclick="loadAdminOrders('0')">待支付</button>
+                <button class="btn btn-outline btn-sm" onclick="loadAdminOrders('1')">已支付</button>
+                <button class="btn btn-outline btn-sm" onclick="loadAdminOrders('2')">已取消</button>
+                <button class="btn btn-outline btn-sm" onclick="loadAdminOrders('3')">超时取消</button>
+                <span style="margin-left:auto;font-size:13px;color:#888;">
+                    用户ID：<input id="adminUserId" type="number" style="width:80px;padding:4px 8px;border:2px solid #e8e8e8;border-radius:4px;" placeholder="全部">
+                    <button class="btn btn-primary btn-sm" onclick="loadAdminOrders('', true)">搜索</button>
+                </span>
+            </div>
+            <div id="adminOrderList" class="order-list-container">
+                <div style="color:#888;text-align:center;padding:20px;">点击「刷新订单」查看所有订单</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const API_BASE = '/api';
+    let adminToken = null;
+
+    // ===== Tab 切换 =====
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+        document.getElementById('loginTab').classList.toggle('active', tab === 'login');
+        document.getElementById('registerTab').classList.toggle('active', tab === 'register');
+        document.getElementById('loginError').style.display = 'none';
+        document.getElementById('registerError').style.display = 'none';
+        document.getElementById('registerSuccess').style.display = 'none';
+    }
+
+    // ===== Toast =====
+    function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'toast ' + type;
+        toast.style.display = 'block';
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
+    }
+
+    // ===== 商家注册 =====
+    async function handleRegister() {
+        const username = document.getElementById('regUsername').value.trim();
+        const password = document.getElementById('regPassword').value.trim();
+        const shopName = document.getElementById('regShopName').value.trim();
+        const phone = document.getElementById('regPhone').value.trim();
+
+        if (!username || username.length < 4) {
+            document.getElementById('registerError').textContent = '❌ 用户名至少4位';
+            document.getElementById('registerError').style.display = 'block';
+            return;
+        }
+        if (!password || password.length < 6) {
+            document.getElementById('registerError').textContent = '❌ 密码至少6位';
+            document.getElementById('registerError').style.display = 'block';
+            return;
+        }
+        if (!shopName) {
+            document.getElementById('registerError').textContent = '❌ 请输入店铺名称';
+            document.getElementById('registerError').style.display = 'block';
+            return;
+        }
+
+        try {
+            const response = await axios.post(`${API_BASE}/auth/register`, {
+                username: username,
+                password: password,
+                phone: phone || '',
+                role: 'MERCHANT',
+                shopName: shopName
+            });
+
+            const data = response.data;
+            if (data.code === 200) {
+                document.getElementById('registerSuccess').style.display = 'block';
+                document.getElementById('registerError').style.display = 'none';
+                document.getElementById('regUsername').value = '';
+                document.getElementById('regPassword').value = '';
+                document.getElementById('regShopName').value = '';
+                document.getElementById('regPhone').value = '';
+                showToast('✅ 商户注册成功，请切换登录', 'success');
+                setTimeout(() => switchTab('login'), 1500);
+            } else {
+                document.getElementById('registerError').textContent = '❌ ' + data.message;
+                document.getElementById('registerError').style.display = 'block';
+            }
+        } catch (error) {
+            const msg = error.response?.data?.message || '网络异常，请稍后再试';
+            document.getElementById('registerError').textContent = '❌ ' + msg;
+            document.getElementById('registerError').style.display = 'block';
+        }
+    }
+
+    // ===== 商家登录 =====
+    async function handleLogin() {
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+
+        if (!username || !password) {
+            showToast('请输入商家账号和密码', 'error');
+            return;
+        }
+
+        try {
+            const response = await axios.post(`${API_BASE}/auth/login`, {
+                username: username,
+                password: password,
+                role: 'MERCHANT'
+            });
+
+            const data = response.data;
+            if (data.code === 200) {
+                const loginData = data.data;
+                adminToken = loginData.token;
+
+                localStorage.setItem('adminToken', adminToken);
+                localStorage.setItem('adminName', loginData.username);
+                localStorage.setItem('shopName', loginData.shopName || '');
+                axios.defaults.headers.common['Authorization'] = 'Bearer ' + adminToken;
+
+                document.getElementById('loginError').style.display = 'none';
+                document.getElementById('loginContainer').classList.remove('active');
+                document.getElementById('mainContainer').classList.add('active');
+                document.getElementById('currentUser').textContent = loginData.username + (loginData.shopName ? ' (' + loginData.shopName + ')' : '');
+
+                showToast('✅ 登录成功，欢迎管理员！', 'success');
+                loadStatus();
+                loadTodayCount();
+                loadAdminOrders('');
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+                showToast('❌ ' + (data.message || '登录失败'), 'error');
+            }
+        } catch (error) {
+            const msg = error.response?.data?.message || '网络异常，请稍后再试';
+            document.getElementById('loginError').style.display = 'block';
+            showToast('❌ ' + msg, 'error');
+        }
+    }
+
+    // ===== 退出 =====
+    function handleLogout() {
+        adminToken = null;
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminName');
+        localStorage.removeItem('shopName');
+        delete axios.defaults.headers.common['Authorization'];
+        document.getElementById('mainContainer').classList.remove('active');
+        document.getElementById('loginContainer').classList.add('active');
+        showToast('已退出', 'warning');
+    }
+
+    // ===== 回车登录/注册 =====
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && document.getElementById('loginContainer').classList.contains('active')) {
+            if (document.getElementById('loginTab').classList.contains('active')) {
+                handleLogin();
+            } else {
+                handleRegister();
+            }
+        }
+    });
+
+    // ============================================================
+    // 功能：单商品预热
+    // ============================================================
+    async function preheatSingle() {
+        const productId = document.getElementById('preheatId').value.trim();
+        if (!productId) { showToast('请输入商品ID', 'error'); return; }
+        try {
+            const token = localStorage.getItem('adminToken');
+            const resp = await axios.get(`${API_BASE}/admin/preheat`, {
+                params: { productId: parseInt(productId) },
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            showToast(resp.data.data || resp.data || '预热成功', 'success');
+            loadStatus();
+        } catch (e) {
+            showToast('预热失败：' + (e.response?.data?.message || e.message), 'error');
+        }
+    }
+
+    // ============================================================
+    // 功能：批量预热
+    // ============================================================
+    async function preheatBatch() {
+        const ids = document.getElementById('preheatBatchIds').value.trim();
+        if (!ids) { showToast('请输入商品ID列表，用逗号分隔', 'error'); return; }
+        try {
+            const token = localStorage.getItem('adminToken');
+            const resp = await axios.get(`${API_BASE}/admin/preheatBatch`, {
+                params: { productIds: ids },
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            showToast(resp.data.data || resp.data || '批量预热成功', 'success');
+            loadStatus();
+        } catch (e) {
+            showToast('批量预热失败：' + (e.response?.data?.message || e.message), 'error');
+        }
+    }
+
+    // ============================================================
+    // 功能：结束秒杀
+    // ============================================================
+    async function endSeckill() {
+        const productId = document.getElementById('endId').value.trim();
+        if (!productId) { showToast('请输入商品ID', 'error'); return; }
+        try {
+            const token = localStorage.getItem('adminToken');
+            const resp = await axios.get(`${API_BASE}/admin/endSeckill`, {
+                params: { productId: parseInt(productId) },
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            showToast(resp.data.data || resp.data || '秒杀已结束', 'success');
+            loadStatus();
+        } catch (e) {
+            showToast('操作失败：' + (e.response?.data?.message || e.message), 'error');
+        }
+    }
+
+    // ============================================================
+    // 功能：批量结束秒杀
+    // ============================================================
+    async function endSeckillBatch() {
+        const ids = document.getElementById('endBatchIds').value.trim();
+        if (!ids) { showToast('请输入商品ID列表，用逗号分隔', 'error'); return; }
+        try {
+            const token = localStorage.getItem('adminToken');
+            const resp = await axios.get(`${API_BASE}/admin/endSeckillBatch`, {
+                params: { productIds: ids },
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            showToast(resp.data.data || resp.data || '批量结束成功', 'success');
+            loadStatus();
+        } catch (e) {
+            showToast('批量结束失败：' + (e.response?.data?.message || e.message), 'error');
+        }
+    }
+
+    // ============================================================
+    // 功能：紧急熔断
+    // ============================================================
+    async function emergencyStop() {
+        if (!confirm('⚠️ 确定要关闭所有秒杀活动吗？此操作不可撤销！')) return;
+        try {
+            const token = localStorage.getItem('adminToken');
+            const resp = await axios.get(`${API_BASE}/admin/emergencyStop`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            showToast(resp.data.data || resp.data || '紧急熔断完成', 'warning');
+            loadStatus();
+        } catch (e) {
+            showToast('熔断失败：' + (e.response?.data?.message || e.message), 'error');
+        }
+    }
+
+    // ============================================================
+    // 功能：查看秒杀状态
+    // ============================================================
+    async function loadStatus() {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const resp = await axios.get(`${API_BASE}/admin/seckillStatus`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = resp.data.data || resp.data;
+            const container = document.getElementById('statusList');
+            if (data && data['秒杀活动状态']) {
+                const statusMap = data['秒杀活动状态'];
+                let html = '';
+                for (const [key, value] of Object.entries(statusMap)) {
+                    let tagClass = 'notstart';
+                    if (value.includes('进行中')) tagClass = 'active';
+                    else if (value.includes('已结束')) tagClass = 'ended';
+                    html += `<div class="status-item"><span>${key}</span><span class="tag ${tagClass}">${value}</span></div>`;
+                }
+                container.innerHTML = html || '<div style="color:#888;text-align:center;padding:20px;">暂无活动</div>';
+            } else {
+                container.innerHTML = '<div style="color:#888;text-align:center;padding:20px;">暂无秒杀活动</div>';
+            }
+        } catch (e) {
+            document.getElementById('statusList').innerHTML = '<div style="color:#e74c3c;text-align:center;padding:20px;">加载失败</div>';
+        }
+    }
+
+    // ============================================================
+    // 功能：支付统计看板
+    // ============================================================
+    async function loadStatistics() {
+        let start = document.getElementById('statStart').value;
+        let end = document.getElementById('statEnd').value;
+        if (!start && !end) {
+            const now = new Date();
+            start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+            end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+            document.getElementById('statStart').value = start;
+            document.getElementById('statEnd').value = end;
+        }
+        try {
+            const token = localStorage.getItem('adminToken');
+            const resp = await axios.get(`${API_BASE}/admin/statistics/payment`, {
+                params: { startTime: start, endTime: end },
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = resp.data.data || resp.data;
+            document.getElementById('statTotal').textContent = data['总订单数'] || 0;
+            document.getElementById('statPaid').textContent = data['已支付'] || 0;
+            document.getElementById('statPending').textContent = data['待支付'] || 0;
+            document.getElementById('statRate').textContent = data['支付率'] || '0%';
+            showToast('✅ 统计已更新', 'success');
+        } catch (e) {
+            showToast('加载统计失败：' + (e.response?.data?.message || e.message), 'error');
+        }
+    }
+
+    // ============================================================
+    // 功能：今日订单数
+    // ============================================================
+    async function loadTodayCount() {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const resp = await axios.get(`${API_BASE}/order/today/count`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = resp.data.data || resp.data;
+            document.getElementById('todayCount').textContent = '📊 ' + (data.count || 0) + ' 单';
+        } catch (e) {
+            document.getElementById('todayCount').textContent = '加载失败';
+        }
+    }
+
+    // ============================================================
+    // 商家端：加载所有订单
+    // ============================================================
+    async function loadAdminOrders(status, searchByUser = false) {
+        const container = document.getElementById('adminOrderList');
+        container.innerHTML = '<div style="color:#888;text-align:center;padding:20px;">⏳ 加载中...</div>';
+        try {
+            const token = localStorage.getItem('adminToken');
+            if (!token) {
+                container.innerHTML = '<div style="color:#e74c3c;text-align:center;padding:20px;">请先登录</div>';
+                return;
+            }
+            const userId = document.getElementById('adminUserId').value.trim();
+            if (searchByUser && userId) {
+                const response = await axios.get(`${API_BASE}/order/list`, {
+                    params: { userId: parseInt(userId), status: status || undefined, page: 1, pageSize: 50 },
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                renderAdminOrders(response.data, container);
+                return;
+            }
+            const response = await axios.get(`${API_BASE}/admin/orders`, {
+                params: { status: status || undefined, page: 1, pageSize: 50 },
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = response.data;
+            if (data.code === 200 && data.data) {
+                renderAdminOrders(data, container);
+            } else {
+                container.innerHTML = '<div style="color:#888;text-align:center;padding:20px;">加载失败</div>';
+            }
+        } catch (e) {
+            console.error('加载订单失败:', e);
+            container.innerHTML = '<div style="color:#e74c3c;text-align:center;padding:20px;">⚠️ 加载失败</div>';
+        }
+    }
+
+    // ===== 渲染订单列表 =====
+    function renderAdminOrders(data, container) {
+        const orders = data.data?.list || [];
+        if (orders.length === 0) {
+            container.innerHTML = '<div style="color:#888;text-align:center;padding:20px;">📭 暂无订单</div>';
+            return;
+        }
+        const statusMap = {
+            0: { text: '待支付', cls: 'pending' },
+            1: { text: '已支付', cls: 'paid' },
+            2: { text: '已取消', cls: 'cancelled' },
+            3: { text: '超时取消', cls: 'timeout' }
+        };
+        container.innerHTML = orders.map(order => {
+            const s = statusMap[order.status] || { text: '未知', cls: '' };
+            return `
+                <div class="order-item-admin">
+                    <div class="order-info">
+                        <span class="order-no">📦 ${order.orderNo}</span>
+                        <span class="order-meta">用户ID: ${order.userId} | ${order.createTime || ''}</span>
+                    </div>
+                    <div class="order-right">
+                        <span class="order-status ${s.cls}">${s.text}</span>
+                        <span class="order-total">¥${order.totalPrice || 0}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    console.log('🏪 商家后台已加载');
+</script>
+</body>
+</html>

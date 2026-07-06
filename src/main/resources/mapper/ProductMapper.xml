@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.seckill.mapper.ProductMapper">
+    <!--更新单个商品库存-->
+    <update id="updateStock">
+        UPDATE product
+        SET stock = #{stock}
+        WHERE id = #{productId}
+    </update>
+
+    <!--批量更新数据库库存-->
+    <update id="batchUpdateStock">
+        UPDATE product
+        SET stock = CASE id
+        <foreach collection="list" item="item">
+            WHEN #{item.productId} THEN #{item.stock}
+        </foreach>
+        END
+        WHERE id IN
+        <foreach collection="list" item="item" open="(" close=")" separator=",">
+            #{item.productId}
+        </foreach>
+    </update>
+    <!--更新商品信息-->
+    <update id="updateProductSelective">
+        UPDATE product
+        <set>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="price != null">
+                price = #{price},
+            </if>
+            <if test="stock != null">
+                stock = #{stock},
+            </if>
+            <if test="description != null">
+                description = #{description},
+            </if>
+        </set>
+        WHERE id = #{productId}
+    </update>
+
+    <!--查询所有商品-->
+    <select id="findAll" resultType="com.example.seckill.entity.Product">
+        select * from product
+    </select>
+
+
+    <!--根据ID查询商品信息-->
+    <select id="findById" resultType="com.example.seckill.entity.Product">
+        select * from product where id=#{id}
+    </select>
+</mapper>
