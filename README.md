@@ -124,7 +124,7 @@ bin/kafka-server-start.sh config/server.
 ```
 3. 初始化数据库
 
-   执行schema.sql 创建表结构并插入初始数据。
+   执行src/main/resourdes/db/schema.sql 创建表结构并插入初始数据。
 
 4. 启动应用
 
